@@ -7,14 +7,12 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - .env-api
-      - ./postgres/.env
-      - ./src/eng_correct/.env
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/02_grant.sh
-      - ./:/usr/local/project         
+      - ./:${PROJECT_PATH}        
     networks:
       train-server:
         aliases:
@@ -31,14 +29,12 @@ services:
     depends_on:
       - postgres
     env_file:
-      - .env-api
-      - ./airflow/.env
-      - ./src/eng_correct/.env
+      - .env
     environment:
       AIRFLOW_ROLE: webserver
-      PYTHONPATH: /usr/local/project
+      PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:/usr/local/project       
+      - ./:${PROJECT_PATH}       
     ports:
       - "8080:8080"
     networks:
@@ -56,14 +52,12 @@ services:
     depends_on:
       - airflow
     env_file:
-      - .env-api
-      - ./airflow/.env
-      - ./src/eng_correct/.env
+      - .env
     environment:
       AIRFLOW_ROLE: scheduler
-      PYTHONPATH: /usr/local/project
+      PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:/usr/local/project        
+      - ./:${PROJECT_PATH}        
     networks:
       train-server:
         aliases:
@@ -80,13 +74,11 @@ services:
     depends_on:
       - postgres
     env_file:
-      - .env-api
-      - ./mlflow/.env
-      - ./src/eng_correct/.env
+      - .env
     environment:
-      PYTHONPATH: /usr/local/project
+      PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:/usr/local/project        
+      - ./:${PROJECT_PATH}       
       - ./mlflow/mlruns:/mlflow/mlruns
     ports:
       - "5000:5000"

@@ -60,14 +60,16 @@ class Train(Base):
     task_instruction_map = relationship("TaskInstructionMap")
     system_prompt = relationship("SystemPrompt")
 
-# 환경변수 로드
-load_dotenv(dotenv_path="/usr/local/project/postgres/.env")
-load_dotenv(dotenv_path="/usr/local/project/src/eng_correct/.env")
+# TODO: FIXIT
+# 환경변수 로드 
+# load_dotenv(dotenv_path="/usr/local/project/postgres/.env")
+# load_dotenv(dotenv_path="/usr/local/project/src/eng_correct/.env")
+load_dotenv()
 
 ENG_DB_NAME = os.environ["ENG_DB_NAME"]
 ENG_DB_USER = os.environ["ENG_DB_USER"]
 ENG_DB_PASSWORD = os.environ["ENG_DB_PASSWORD"]
-POSTGRES_HOST = os.environ["ENG_DB_HOST"]
+POSTGRES_HOST = os.environ["POSTGRES_HOST"]
 POSTGRES_PORT = os.environ["POSTGRES_PORT"]
 
 DATABASE_URL = f"postgresql+psycopg2://{ENG_DB_USER}:{ENG_DB_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{ENG_DB_NAME}"

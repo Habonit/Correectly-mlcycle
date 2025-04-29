@@ -32,7 +32,7 @@ WORKDIR /mlflow
 COPY --from=builder /mlflow/.venv .venv
 COPY --from=builder /mlflow/requirements.txt .
 
-ENV PYTHONPATH=/usr/local/project
+ENV PYTHONPATH=${PROJECT_PATH}
 
 ENV PATH="$VENV_PATH/bin:$PATH"
 

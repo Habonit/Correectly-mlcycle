@@ -6,9 +6,11 @@ from sqlalchemy.orm import sessionmaker
 from src.eng_correct.db_model import Base, SessionLocal
 from src.eng_correct.load_sample_data import insert_sample_from_directory
 
+# TODO: FIXIT
 # 환경변수 로드 (공통 → 개별 순으로 덮어쓰기 가능)
-load_dotenv(dotenv_path="/usr/local/project/postgres/.env")                  # 공통 admin 정보
-load_dotenv(dotenv_path="/usr/local/project/src/eng_correct/.env")      # eng_correct 전용 설정
+# load_dotenv(dotenv_path="/usr/local/project/postgres/.env")                  # 공통 admin 정보
+# load_dotenv(dotenv_path="/usr/local/project/src/eng_correct/.env")      # eng_correct 전용 설정
+load_dotenv()
 
 container = False
 
@@ -16,11 +18,11 @@ container = False
 eng_user = os.environ["ENG_DB_USER"]
 eng_pw = os.environ["ENG_DB_PASSWORD"]
 eng_db = os.environ["ENG_DB_NAME"]
-host = os.environ["ENG_DB_HOST"]
 
 # PostgreSQL 관리자 정보
 admin_user = os.environ["POSTGRES_USER"]
 admin_pw = os.environ["POSTGRES_PASSWORD"]
+host = os.environ["POSTGRES_HOST"]
 port = os.environ["POSTGRES_PORT"]
 
 init_flag = os.environ.get("INIT", "false").lower() == "true"

@@ -37,7 +37,7 @@ COPY --from=builder $AIRFLOW_HOME/.venv .venv
 ENV PATH="$AIRFLOW_HOME/.venv/bin:$PATH"
 
 # Airflow 환경에서 사용할 PYTHONPATH 설정
-ENV PYTHONPATH=/usr/local/project
+ENV PYTHONPATH=${PROJECT_PATH}
 
 # DAG 및 entrypoint 복사
 WORKDIR /usr/local/airflow

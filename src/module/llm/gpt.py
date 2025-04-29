@@ -6,7 +6,7 @@ from typing import Literal
 import argparse
 from src.utils.logger import setup_logger
 
-load_dotenv(dotenv_path="/usr/local/project/.env-api")
+load_dotenv()
 
 class GPTClient:
     def __init__(self, 
