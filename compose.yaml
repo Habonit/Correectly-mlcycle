@@ -34,7 +34,8 @@ services:
       AIRFLOW_ROLE: webserver
       PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:${PROJECT_PATH}       
+      - ./:${PROJECT_PATH}        
+      - ./airflow:${AIRFLOW_PATH}     
     ports:
       - "8080:8080"
     networks:
@@ -58,6 +59,7 @@ services:
       PYTHONPATH: ${PROJECT_PATH}
     volumes:
       - ./:${PROJECT_PATH}        
+      - ./airflow:${AIRFLOW_PATH}
     networks:
       train-server:
         aliases:

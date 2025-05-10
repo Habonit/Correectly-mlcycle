@@ -3,7 +3,7 @@ LABEL authors="paradeigma"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV AIRFLOW_HOME=/usr/local/airflow
+ENV AIRFLOW_HOME=${AIRFLOW_PATH}
 WORKDIR $AIRFLOW_HOME
 
 # 시스템 의존성 설치
@@ -15,6 +15,8 @@ RUN apt-get update && \
 # 1단계: requirements 설치용 빌더 이미지
 # --------------------------------------------------------
 FROM base AS builder
+ENV AIRFLOW_HOME=${AIRFLOW_PATH}
+WORKDIR $AIRFLOW_HOME
 
 RUN python -m venv .venv
 ENV PATH="$AIRFLOW_HOME/.venv/bin:$PATH"
@@ -35,12 +37,12 @@ FROM base AS runner
 # 가상환경 복사
 COPY --from=builder $AIRFLOW_HOME/.venv .venv
 ENV PATH="$AIRFLOW_HOME/.venv/bin:$PATH"
-
+ENV AIRFLOW_HOME=${AIRFLOW_PATH}
 # Airflow 환경에서 사용할 PYTHONPATH 설정
 ENV PYTHONPATH=${PROJECT_PATH}
 
 # DAG 및 entrypoint 복사
-WORKDIR /usr/local/airflow
+WORKDIR $AIRFLOW_HOME
 COPY airflow/dags/ ./dags/
 COPY airflow/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh

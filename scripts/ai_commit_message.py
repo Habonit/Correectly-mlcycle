@@ -4,8 +4,6 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# TODO: fixit
-# 현재 파일 위치에서 scripts 디렉토리 기준 경로 설정
 template_path = "scripts/commit_template.txt"
 
 load_dotenv()
