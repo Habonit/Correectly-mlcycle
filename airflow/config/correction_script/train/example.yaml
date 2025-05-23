@@ -1,0 +1,18 @@
+instruction_prompt_id: 
+  type: necessary_column
+  value: [1]
+input: 
+  type: target_column
+  value: []
+output: 
+  type: target_column
+  value: []
+rejected: 
+  type: target_column
+  value: []
+generated_text_id: 
+  type: necessary_column
+  value: 1~81
+etc: 
+  type: optional_column
+  value: []

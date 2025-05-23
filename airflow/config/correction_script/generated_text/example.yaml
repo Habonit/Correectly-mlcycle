@@ -1,0 +1,23 @@
+iteration_num: 
+  type: generation_param
+  value: 1
+model: 
+  type: generation_param
+  value: gpt-4o-mini
+
+creativity_id: 
+  type: necessary_column
+  value: 1~5
+length_id: 
+  type: necessary_column
+  value: [4]
+example_id: 
+  type: necessary_column
+  value: 1~7
+
+generated_text: 
+  type: target_column
+  value: []
+etc: 
+  type: optional_column
+  value: []

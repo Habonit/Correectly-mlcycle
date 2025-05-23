@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # DB 마이그레이션 (중복 방지용 + 안정성 보강)
 airflow db upgrade || airflow db migrate
 

@@ -106,8 +106,8 @@ class CorrectionScriptGeneratedText(Base):
     length            = relationship("TextRepositoryLength")
     example             = relationship("CorrectionScriptExample")
  
-class CorrectionScriptEvaluationPrompt(Base):
-    __tablename__  = 'evaluation_prompt'
+class CorrectionScriptInstructionPrompt(Base):
+    __tablename__  = 'instruction_prompt'
     __table_args__ = {
         'schema': 'correction_script', 
         'comment': ''
@@ -115,26 +115,38 @@ class CorrectionScriptEvaluationPrompt(Base):
     id                 = Column(Integer, primary_key=True)
     
     type_id = Column(Integer, ForeignKey('correction_script.correction_script_type.id'), nullable=True)
-    evaluation_prompt = Column(Text, nullable=False)
+    prompt = Column(Text, nullable=False)
     
     correction_script_type = relationship("CorrectionScriptType")
-   
-class CorrectionScriptInferenceEvaluation(Base):
-    __tablename__  = 'inference_evaluation'
+    
+class CorrectionScriptTrain(Base):
+    __tablename__  = 'train'
     __table_args__ = {
         'schema': 'correction_script', 
         'comment': ''
     }
     id                 = Column(Integer, primary_key=True)
     
-    generated_text_id = Column(Integer, ForeignKey('correction_script.generated_text.id'), nullable=False)
-    evaluation_prompt_id = Column(Integer, ForeignKey('correction_script.evaluation_prompt.id'), nullable=False)
-
-    label = Column(Text, nullable=False)
-    inference = Column(Text,  nullable=False)
-    etc = Column(Text, nullable=True)
+    instruction_prompt_id = Column(Integer, ForeignKey('correction_script.instruction_prompt.id'), nullable=True)
+    input = Column(Text, nullable=False)
+    output = Column(Text, nullable=False)
+    rejected = Column(Text, nullable=True)
+    generated_text_id = Column(Integer, ForeignKey('correction_script.generated_text.id'), nullable=True)
     created_at = Column(DateTime, default=func.now())
     modified_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    etc = Column(Text, nullable=True)
     
-    generated_text        = relationship("CorrectionScriptGeneratedText")
-    evaluation_prompt     = relationship("CorrectionScriptEvaluationPrompt")
+    correction_script_instruction_prompt = relationship("CorrectionScriptInstructionPrompt")
+    correction_script_generated_text = relationship("CorrectionScriptGeneratedText")
+    
+__all__ = [
+    "CorrectionScriptType",
+    "CorrectionScriptKeyExpression",
+    "CorrectionScriptStyle",
+    "CorrectionScriptTheme",
+    "CorrectionScriptSpeaker",
+    "CorrectionScriptExample",
+    "CorrectionScriptGeneratedText",
+    "CorrectionScriptInstructionPrompt",
+    "CorrectionScriptTrain",
+]

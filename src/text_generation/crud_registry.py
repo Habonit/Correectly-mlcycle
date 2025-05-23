@@ -17,14 +17,12 @@ from src.text_generation.crud.correction_script.key_expression import Correction
 from src.text_generation.crud.correction_script.speaker import CorrectionScriptSpeakerCRUD
 from src.text_generation.crud.correction_script.example import CorrectionScriptExampleCRUD
 from src.text_generation.crud.correction_script.generated_text import CorrectionScriptGeneratedTextCRUD
-from src.text_generation.crud.correction_script.inference_evaluation import CorrectionScriptInferenceEvaluationCRUD
-from src.text_generation.crud.correction_script.evaluation_prompt import CorrectionScriptEvaluationPromptCRUD
-
+from src.text_generation.crud.correction_script.instruction_prompt import CorrectionScriptInstructionPromptCRUD
+from src.text_generation.crud.correction_script.train import CorrectionScriptTrainCRUD
 # 초기 각 테이블 멸 모든 crud를 등록해놓는 스크립트입니다.
 # 반드시 샘플 데이터의 시트이름과 테이블 명이 일치해야 합니다.
 
 text_repository_crud_mapping = OrderedDict([
-    # ('speaker_num',               SpeakerNumCRUD),
     ('system_prompt',             SystemPromptCRUD),
     ('generation_prompt',         GenerationPromptCRUD),
     ('creativity',                CreativityCRUD),
@@ -42,10 +40,9 @@ correction_script_crud_mapping = OrderedDict([
     ('speaker', CorrectionScriptSpeakerCRUD),
     ('example', CorrectionScriptExampleCRUD),
     ('generated_text', CorrectionScriptGeneratedTextCRUD),
-    ('evaluation_prompt', CorrectionScriptEvaluationPromptCRUD),
-    ('inference_evaluation', CorrectionScriptInferenceEvaluationCRUD)
+    ('instruction_prompt', CorrectionScriptInstructionPromptCRUD),
+    ('train', CorrectionScriptTrainCRUD),
 ])
-
 
 crud_mapping = [
     {

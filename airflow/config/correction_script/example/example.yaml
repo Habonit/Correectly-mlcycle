@@ -7,13 +7,13 @@ model:
 
 creativity_id: 
   type: necessary_column
-  value: [1,2,3,4,5]
+  value: [3]
 length_id: 
   type: necessary_column
-  value: [3]
+  value: [4,5]
 system_prompt_id: 
   type: necessary_column
-  value: [1,2,3,4,5]
+  value: [1,4]
 generation_prompt_id: 
   type: necessary_column
   value: [1]
@@ -22,7 +22,7 @@ form_id:
   value: [4]
 mapping_emotion_form_id: 
   type: necessary_column
-  value: [10,11,12]
+  value: 10~12
 speaker_id: 
   type: necessary_column
   value: [1]
@@ -34,7 +34,7 @@ key_expression_id:
   value: []
 theme_id: 
   type: optional_column
-  value: []
+  value: 1~7
 example: 
   type: target_column
   value: []

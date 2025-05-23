@@ -1,36 +1,36 @@
 from sqlalchemy.orm import Session
-from src.text_generation.models.correction_script import CorrectionScriptEvaluationPrompt
+from src.text_generation.models.correction_script import CorrectionScriptInstructionPrompt
 
-class CorrectionScriptEvaluationPromptCRUD:
+class CorrectionScriptInstructionPromptCRUD:
     def __init__(self, session: Session):
         self.session = session
 
     def create(
         self,
         type_id: int | None,
-        evaluation_prompt: str
-    ) -> CorrectionScriptEvaluationPrompt:
-        obj = CorrectionScriptEvaluationPrompt(
+        prompt: str
+    ) -> CorrectionScriptInstructionPrompt:
+        obj = CorrectionScriptInstructionPrompt(
             type_id=type_id,
-            evaluation_prompt=evaluation_prompt
+            prompt=prompt
         )
         self.session.add(obj)
         self.session.commit()
         self.session.refresh(obj)
         return obj
 
-    def read(self, prompt_id: int) -> CorrectionScriptEvaluationPrompt | None:
+    def read(self, prompt_id: int) -> CorrectionScriptInstructionPrompt | None:
         return (
             self.session
-            .query(CorrectionScriptEvaluationPrompt)
-            .filter(CorrectionScriptEvaluationPrompt.id == prompt_id)
+            .query(CorrectionScriptInstructionPrompt)
+            .filter(CorrectionScriptInstructionPrompt.id == prompt_id)
             .first()
         )
 
-    def read_all(self, skip: int = 0, limit: int = 100) -> list[CorrectionScriptEvaluationPrompt]:
+    def read_all(self, skip: int = 0, limit: int = 100) -> list[CorrectionScriptInstructionPrompt]:
         return (
             self.session
-            .query(CorrectionScriptEvaluationPrompt)
+            .query(CorrectionScriptInstructionPrompt)
             .offset(skip)
             .limit(limit)
             .all()
@@ -40,20 +40,20 @@ class CorrectionScriptEvaluationPromptCRUD:
         self,
         prompt_id: int,
         type_id: int | None = None,
-        evaluation_prompt: str | None = None
-    ) -> CorrectionScriptEvaluationPrompt | None:
+        prompt: str | None = None
+    ) -> CorrectionScriptInstructionPrompt | None:
         obj = self.read(prompt_id)
         if not obj:
             return None
         if type_id is not None:
             obj.type_id = type_id
-        if evaluation_prompt is not None:
-            obj.evaluation_prompt = evaluation_prompt
+        if prompt is not None:
+            obj.prompt = prompt
         self.session.commit()
         self.session.refresh(obj)
         return obj
 
-    def delete(self, prompt_id: int) -> CorrectionScriptEvaluationPrompt | None:
+    def delete(self, prompt_id: int) -> CorrectionScriptInstructionPrompt | None:
         obj = self.read(prompt_id)
         if obj:
             self.session.delete(obj)

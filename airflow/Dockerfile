@@ -1,51 +1,38 @@
+# ===== Base =====
 FROM python:3.10-slim AS base
-LABEL authors="paradeigma"
-
+ARG PROJECT_PATH
+ARG VENV_PATH
+ENV PROJECT_PATH=${PROJECT_PATH}
+ENV PYTHONPATH=${PROJECT_PATH}
+ENV VENV_PATH=${VENV_PATH}
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV AIRFLOW_HOME=${AIRFLOW_PATH}
-WORKDIR $AIRFLOW_HOME
+ENV PATH="${VENV_PATH}/bin:$PATH"
 
-# 시스템 의존성 설치
-RUN apt-get update && \
-    apt-get install -y gcc libc-dev vim curl && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR ${PROJECT_PATH}
 
-# --------------------------------------------------------
-# 1단계: requirements 설치용 빌더 이미지
-# --------------------------------------------------------
+RUN apt-get update && apt-get install -y \
+    gcc libc-dev vim curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# ===== Builder =====
 FROM base AS builder
-ENV AIRFLOW_HOME=${AIRFLOW_PATH}
-WORKDIR $AIRFLOW_HOME
+WORKDIR ${PROJECT_PATH}
 
-RUN python -m venv .venv
-ENV PATH="$AIRFLOW_HOME/.venv/bin:$PATH"
-
-# airflow 내 requirements만 복사
-COPY airflow/requirements.txt .
-
-# airflow 관련 의존성 설치
+RUN python -m venv ${VENV_PATH}
+COPY airflow/requirements.txt ./
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     python -c "import flask_session; print('✅ flask_session import OK')"
 
-# --------------------------------------------------------
-# 2단계: 실행 이미지
-# --------------------------------------------------------
+# ===== Runner =====
 FROM base AS runner
+WORKDIR ${PROJECT_PATH}
 
-# 가상환경 복사
-COPY --from=builder $AIRFLOW_HOME/.venv .venv
-ENV PATH="$AIRFLOW_HOME/.venv/bin:$PATH"
-ENV AIRFLOW_HOME=${AIRFLOW_PATH}
-# Airflow 환경에서 사용할 PYTHONPATH 설정
-ENV PYTHONPATH=${PROJECT_PATH}
-
-# DAG 및 entrypoint 복사
-WORKDIR $AIRFLOW_HOME
-COPY airflow/dags/ ./dags/
-COPY airflow/entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY --from=builder ${VENV_PATH} ${VENV_PATH}
+COPY airflow/dags/ airflow/dags/
+COPY airflow/entrypoint.sh airflow/entrypoint.sh
+RUN chmod +x airflow/entrypoint.sh
 
 EXPOSE 8080
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["airflow/entrypoint.sh"]

@@ -5,25 +5,28 @@ services:
     image: pgvector/pgvector:0.8.0-pg17
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     env_file:
       - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/02_grant.sh
-      - ./:${PROJECT_PATH}        
+      - ./:${PROJECT_PATH}
     networks:
       train-server:
         aliases:
           - db
-        ipv4_address: 10.20.0.10
+        ipv4_address: ${POSTGRES_IP}
 
   airflow:
     image: custom-airflow:latest
     build:
       context: .
       dockerfile: airflow/Dockerfile
+      args:
+        PROJECT_PATH: ${PROJECT_PATH}
+        VENV_PATH: ${VENV_PATH}
     container_name: airflow
     restart: unless-stopped
     depends_on:
@@ -34,21 +37,25 @@ services:
       AIRFLOW_ROLE: webserver
       PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:${PROJECT_PATH}        
-      - ./airflow:${AIRFLOW_PATH}     
+      - ./airflow/entrypoint.sh:${PROJECT_PATH}/airflow/entrypoint.sh
+      - ./:${PROJECT_PATH}
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "8080:8080"
+      - "${AIRFLOW_PORT}:8080"
     networks:
       train-server:
         aliases:
           - airflow
-        ipv4_address: 10.20.0.20
+        ipv4_address: ${AIRFLOW_IP}
 
   airflow_scheduler:
     image: custom-airflow:latest
     build:
       context: .
       dockerfile: airflow/Dockerfile
+      args:
+        PROJECT_PATH: ${PROJECT_PATH}
+        VENV_PATH: ${VENV_PATH}
     container_name: airflow_scheduler
     depends_on:
       - airflow
@@ -58,19 +65,23 @@ services:
       AIRFLOW_ROLE: scheduler
       PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:${PROJECT_PATH}        
-      - ./airflow:${AIRFLOW_PATH}
+      - ./airflow/entrypoint.sh:${PROJECT_PATH}/airflow/entrypoint.sh
+      - ./:${PROJECT_PATH}
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       train-server:
         aliases:
           - scheduler
-        ipv4_address: 10.20.0.21
+        ipv4_address: ${SCHEDULER_IP}
 
   mlflow:
     image: custom-mlflow:latest
     build:
       context: .
       dockerfile: mlflow/Dockerfile
+      args:
+        PROJECT_PATH: ${PROJECT_PATH}
+        VENV_PATH: ${VENV_PATH}
     container_name: mlflow
     restart: unless-stopped
     depends_on:
@@ -80,15 +91,14 @@ services:
     environment:
       PYTHONPATH: ${PROJECT_PATH}
     volumes:
-      - ./:${PROJECT_PATH}       
-      - ./mlflow/mlruns:/mlflow/mlruns
+      - ./:${PROJECT_PATH}
     ports:
-      - "5000:5000"
+      - "${MLFLOW_PORT}:5000"
     networks:
       train-server:
         aliases:
           - mlflow
-        ipv4_address: 10.20.0.30
+        ipv4_address: ${MLFLOW_IP}
 
 volumes:
   pgdata:
@@ -100,4 +110,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 10.20.0.0/16
+        - subnet: ${SUBNET}

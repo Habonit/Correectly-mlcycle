@@ -4,7 +4,7 @@
 # src/eng_correct/
 
 # 그 외 불필요한 파일
-
+.archive
 .env-api
 test.ipynb
 

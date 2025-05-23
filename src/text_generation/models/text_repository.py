@@ -1,20 +1,9 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from .base import Base
 
 # 어떤 스키마에 대하여 테이블 별로 정의된 것입니다.
 # 현재는 fk-pk만 연결되어 있으며 세부 정책은 적용되어있지 않습니다.
-
-# TODO: 아래는 삭제할 테이블입니다.
-# class TextRepositorySpeakerNum(Base):
-#     __tablename__ = 'speaker_num'
-#     __table_args__ = {
-#         'schema': 'text_repository',
-#         'comment': '글의 화자 수를 저장하는 테이블(0명일 경우 발화 상황이 가정되지 않은 글)'
-#     }
-
-#     id = Column(Integer, primary_key=True)
-#     speaker_num = Column(Integer, nullable=False)
 
 class TextRepositoryForm(Base):
     __tablename__ = 'form'
@@ -81,7 +70,7 @@ class TextRepositoryCreativity(Base):
     }
 
     id = Column(Integer, primary_key=True)
-    degree = Column(Integer, nullable=False)
+    degree = Column(Float, nullable=False)
     description = Column(String, nullable=False)
 
 class TextRepositoryLength(Base):
@@ -93,3 +82,13 @@ class TextRepositoryLength(Base):
 
     id = Column(Integer, primary_key=True)
     length = Column(Integer, nullable=False)
+    
+__all__ = [
+    "TextRepositoryCreativity",
+    "TextRepositoryLength",
+    "TextRepositorySystemPrompt",
+    "TextRepositoryGenerationPrompt",
+    "TextRepositoryForm",
+    "TextRepositoryEmotion",
+    "TextRepositoryMappingEmotionForm",
+]
