@@ -3,3 +3,6 @@ transformers
 trl
 datasets
 loguru
+accelerate
+peft
+scipy
