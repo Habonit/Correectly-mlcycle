@@ -7,9 +7,9 @@ from src.text_generation.database import SessionLocal
 
 from src.text_generation.crud.correction_script.train import CorrectionScriptTrainCRUD
 from src.text_generation.crud.correction_script.instruction_prompt import CorrectionScriptInstructionPromptCRUD
-from src.text_generation.crud.correction_script.generated_text import CorrectionScriptGeneratedTextCRUD
 
 from src.utils.load_dag_config import load_dag_config
+from src.utils.write_json import write_json
 from src.utils.logger import setup_logger
 
 from dotenv import load_dotenv
@@ -35,7 +35,6 @@ def get_crud_mappings(session):
     """
     return {
         'instruction_prompt_id': CorrectionScriptInstructionPromptCRUD(session),
-        'generated_text_id': CorrectionScriptGeneratedTextCRUD(session),
         'train': CorrectionScriptTrainCRUD(session),
     }
 
@@ -56,7 +55,7 @@ def prepare_generation_data(**kwargs):
         None
     """
     dag_conf = kwargs.get('dag_run').conf if kwargs.get('dag_run') else {}
-    relative_path = dag_conf.get('yaml_path', 'airflow/config/correction_script/train/example.yaml')
+    relative_path = dag_conf.get('yaml_path', 'airflow/config/correction_script/write_data/example.yaml')
     cfg_path = project_path / relative_path
     cfg, etc, target, generation_param, generation_lst = load_dag_config(cfg_path)
     payload = {
@@ -73,78 +72,80 @@ def prepare_generation_data(**kwargs):
     for key, value in payload.items():
         logger.debug(f"[Load Config]: {key}: {value} \n")
         
-    kwargs['ti'].xcom_push(key='train_generation_config', value=payload)
+    kwargs['ti'].xcom_push(key='write_data_config', value=payload)
 
 # 실제 예시 생성 및 DB 삽입
-def create_train_data(**kwargs):
+def write_train_data(**kwargs):
     """
-    XCom으로부터 generation config를 불러와,
-    프롬프트 포맷은 YAML에 정의된 generation_prompt 템플릿에 따라 구성됩니다.
-    CRUD 매핑을 통해 DB에 예시 데이터를 저장합니다.
-
-    Returns:
-        None
     """
-    payload = kwargs['ti'].xcom_pull(key='train_generation_config', task_ids='prepare_generation_data')
+    payload = kwargs['ti'].xcom_pull(key='write_data_config', task_ids='prepare_generation_data')
+    dag_conf = kwargs.get('dag_run').conf if kwargs.get('dag_run') else {}
+    generation_id = dag_conf.get('generation_id', '7883')  
+    train_name = dag_conf.get('train_name', 'train_corpus.json')  
+    val_name = dag_conf.get('val_name', 'train_corpus.json')  
+    
+    dir_path = f"data/{generation_id}"
+    os.makedirs(dir_path, exist_ok=True)
+    
+    train_data_path = f"{dir_path}/{train_name}"
+    val_data_path = f"{dir_path}/{val_name}"
+      
+    logger.info(f"[Write Train Data]: {train_data_path}에 저장")
     session = SessionLocal()
     crud_mappings = get_crud_mappings(session)
 
-    # 해당함수는 row 한 줄을 받아서 새롭게 데이터를 정의합니다.
-    # DAG마다 달라질 수 있습니다. 
-    def make_params(row, deliminator = "#####"):
+    def make_params(num):
         # one shot prompt 생성 전략을 취하기 때문에 반드시 example_id를 받아와서 해당 행의 다양한 특징을 입력해야 합니다.
         params = {}
                     
-        if row.get('generated_text_id') is not None:
-            generated_text = crud_mappings['generated_text_id'].read(row['generated_text_id']).generated_text
-            generated_text_id = row['generated_text_id']
-            
-            input_ = generated_text.split(deliminator)[0]
-            output = generated_text
-            rejected = None
-            
-        else:
-            generated_text = None
-            generated_text_id = None
-            
-            input_ = None
-            output = None
-            rejected = None
+        train_obj = crud_mappings['train'].read(num)
+        instruction_prompt_id = train_obj.instruction_prompt_id
+        instruction = crud_mappings['instruction_prompt_id'].read(instruction_prompt_id).prompt
+        input_ = train_obj.input
+        output = train_obj.output
+        rejected = train_obj.rejected
         
+        params['instruction'] = instruction
         params['input'] = input_
         params['output'] = output
         params['rejected'] = rejected
-        params['generated_text_id'] = generated_text_id
         
         return params
 
     iteration_num = payload.get('generation_param', {}).get('iteration_num', 1)
         
+    train_result = []
     for _ in range(iteration_num):
-        for row in payload['generation_lst']:
-            for name in payload['etc']:
-                row[name] = None
-            params = make_params(row)
-            row['input'] = params['input']
-            row['output'] = params['output']
-            row['rejected'] = params['rejected']
+        for num in payload['cfg']['train_id']:
 
-            obj = crud_mappings['train'].create(**row)
-            session.commit()
-            session.refresh(obj)
+            params = make_params(num)
+            train_result.append(params)
+    write_json(path=train_data_path, data=train_result)
     
-    session.close()
+    val_result = []
+    for _ in range(iteration_num):
+        for num in payload['cfg']['val_id']:
 
+            params = make_params(num)
+            val_result.append(params)
+    write_json(path=val_data_path, data=val_result)
+    
+    logger.info(f"[Write Train Data] train 데이터 개수: {len(train_result)}")
+    logger.info(f"[Write Train Data] val 데이터 개수: {len(val_result)}")
+    
 # DAG 정의
 with DAG(
-    dag_id="correction_script_train",
+    dag_id="correction_script_write_data",
     start_date=datetime(2025, 5, 8),
     schedule_interval=None,
     catchup=False,
-    description="1) YAML 로드 → 2) train data 전용 전처리",
-    tags=["correction_script", "train_table"],
+    description="1) YAML 로드 → 2) train data 저장 ",
+    tags=["yaml", "llm", "test"],
     params={
-        "yaml_path": "airflow/config/correction_script/train/example.yaml",
+        "yaml_path": "airflow/config/correction_script/write_data/example.yaml",
+        'generation_id' : "7883",
+        "train_name" : "train_corpus.json",
+        "val_name" : "val_corpus.json"
     }
 ) as dag:
 
@@ -155,8 +156,8 @@ with DAG(
     )
 
     t2 = PythonOperator(
-        task_id="create_train_data",
-        python_callable=create_train_data,
+        task_id="write_train_data",
+        python_callable=write_train_data,
         provide_context=True
     )
 
