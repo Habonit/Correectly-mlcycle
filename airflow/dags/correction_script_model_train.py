@@ -209,7 +209,12 @@ with DAG(
     params={
         "yaml_path": "airflow/config/correction_script/model_train/example.yaml",
         'train_data_path': "data/train_corpus.json",
-        'val_data_path': "data/val_corpus.json"
+        'val_data_path': "data/val_corpus.json",
+        "train_ip":None,
+        "train_port":None,
+        "host_name":None,
+        "train_dir":None,
+        "ssh_key":"/.ssh/id_rsa"
     }
 ) as dag:
 
@@ -250,4 +255,4 @@ with DAG(
         }
     )
 
-    t1 >> t2 >> t3
+    t1 >> t2

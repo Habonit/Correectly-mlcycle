@@ -1,15 +1,10 @@
-from src.text_generation.models.text_repository import *
-from src.text_generation.models.correction_script import *
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.models import Variable
-from datetime import datetime
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-from itertools import product
 
+from src.text_generation.models.text_repository import *
+from src.text_generation.models.correction_script import *
 from src.text_generation.database import SessionLocal
+
 from src.text_generation.crud.text_repository.creativity import CreativityCRUD
 from src.text_generation.crud.text_repository.length import LengthCRUD
 from src.text_generation.crud.text_repository.system_prompt import SystemPromptCRUD
@@ -22,73 +17,24 @@ from src.text_generation.crud.correction_script.theme import CorrectionScriptThe
 from src.text_generation.crud.correction_script.speaker import CorrectionScriptSpeakerCRUD
 from src.text_generation.crud.correction_script.example import CorrectionScriptExampleCRUD
 from src.text_generation.crud.correction_script.generated_text import CorrectionScriptGeneratedTextCRUD
-from src.module.llm.gpt import GPTClient
-from src.utils.load_yaml import load_yaml
-from src.utils.logger import setup_logger
 
-# 환경 설정
+from src.module.llm.gpt import GPTClient
+from src.utils.logger import setup_logger
+from src.utils.load_dag_config import load_dag_config
+
+from dotenv import load_dotenv
+from datetime import datetime
+from pathlib import Path
+import os
+
 load_dotenv()
 log_level = os.getenv("LOG_LEVEL", "DEBUG")
 logger = setup_logger(log_level)
 project_path = Path(os.getenv('PROJECT_PATH'))
 
-def load_config(cfg_path: Path):
-    """
-    YAML 설정 파일을 로드하고, 텍스트 생성에 필요한 파라미터와 컬럼 설정을 파싱합니다.
-
-    설정 파일로부터 필수 키의 존재 여부를 확인한 뒤, 필수 컬럼, 선택 컬럼, 타겟 컬럼을 분리합니다.
-    필수 컬럼 값들의 모든 조합을 계산하여 반환합니다.
-
-    Args:
-        cfg_path (Path): 설정 파일의 경로입니다.
-        required_keys (list[str], optional): 반드시 존재해야 하는 키 목록입니다. 기본값은 ['model', 'iteration_num']입니다.
-
-    Returns:
-        tuple:
-            - model (str): 설정된 모델 이름입니다.
-            - iteration_num (int): 반복 횟수입니다.
-            - cfg (dict[str, list[Any]]): 필수 컬럼과 그 값 목록입니다.
-            - etc (list[str]): 값이 비었거나 형식이 맞지 않는 선택 컬럼 목록입니다.
-            - target (str | None): 타겟 컬럼의 이름입니다. 없으면 None을 반환합니다.
-            - generation_lst (list[dict[str, Any]]): 필수 컬럼들의 값 조합 리스트입니다.
-
-    Raises:
-        KeyError: required_keys에 포함된 키가 설정 파일에 존재하지 않을 경우 발생합니다.
-    """
-    raw = load_yaml(cfg_path)
-    
-    cfg, etc, target, generation_param = {}, [], [], {}
-    for key, val in raw.items():
-        t = val['type']; v = val['value']
-        
-        if t == 'necessary_column':
-            if isinstance(v, list) and v:
-                cfg[key] = v
-            elif isinstance(v, str) and '~' in v:
-                start, end = map(int, v.split('~'))
-                cfg[key] = list(range(start, end+1))
-                
-        elif t == 'optional_column':
-            if isinstance(v, list) and v:
-                cfg[key] = v
-            elif isinstance(v, str) and '~' in v:
-                start, end = map(int, v.split('~'))
-                cfg[key] = list(range(start, end+1))
-            else:
-                etc.append(key)
-                
-        elif t == 'target_column':
-            target.append(key)
-            
-        elif t == 'generation_param':
-            generation_param[key] = v
-        
-    generation_lst = [dict(zip(cfg.keys(), combo)) for combo in product(*cfg.values())]
-    return cfg, etc, target, generation_param, generation_lst
-
 def get_crud_mappings(session):
     """
-    SQLAlchemy 세션을 기반으로 모든 필요한 CRUD 객체를 생성하여 매핑 딕셔너리로 반환합니다.
+    SQLAlchemy 세션을 기반으로 필요한 CRUD 객체를 생성하여 매핑 딕셔너리로 반환합니다. 
 
     Args:
         session (Session): SQLAlchemy 세션 객체
@@ -114,16 +60,14 @@ def get_crud_mappings(session):
 # XCom에 직렬화 가능한 데이터만 전달
 def prepare_generation_data(**kwargs):
     """
-    Airflow DAG에서 실행되는 태스크.
-    
     DAG 실행 시 전달받은 `dag_run.conf`로부터 YAML 경로를 받아 설정 파일을 파싱하고,
-    텍스트 생성에 필요한 반복 횟수, 파라미터 조합 리스트, 타겟 컬럼 정보를 준비하여 XCom으로 전달합니다.
+    텍스트 생성에 필요한 정보를 준비하여 XCom으로 전달합니다.
 
-    XCom Key: 'example_generation_config'
+    XCom Key 예시: 'generated_text_config'
 
     dag_run.conf 예시:
     {
-        "yaml_path": "airflow/config/correction_script/generated_text/example.yaml"
+        "yaml_path": "airflow/config/correction_script/example/example.yaml"
     }
 
     Returns:
@@ -132,7 +76,7 @@ def prepare_generation_data(**kwargs):
     dag_conf = kwargs.get('dag_run').conf if kwargs.get('dag_run') else {}
     relative_path = dag_conf.get('yaml_path', 'airflow/config/correction_script/generated_text/example.yaml')
     cfg_path = project_path / relative_path
-    cfg, etc, target, generation_param, generation_lst = load_config(cfg_path)
+    cfg, etc, target, generation_param, generation_lst = load_dag_config(cfg_path)
     payload = {
         'cfg_path': str(cfg_path),
         'cfg': cfg,
@@ -147,21 +91,19 @@ def prepare_generation_data(**kwargs):
     for key, value in payload.items():
         logger.debug(f"[Load Config]: {key}: {value} \n")
         
-    kwargs['ti'].xcom_push(key='example_generation_config', value=payload)
+    kwargs['ti'].xcom_push(key='generated_text_config', value=payload)
 
 # LLM 동작 테스트
 def test_llm_generation(**kwargs):
     """
-    Airflow DAG에서 실행되는 태스크.
-
-    dag_run.conf로 전달받은 테스트용 프롬프트(`test_prompt`)를 이용해 
+    테스트용 프롬프트(`test_prompt`)를 이용해 
     LLM의 응답을 테스트하고, 결과를 로그에 출력합니다.
 
     결과는 XCom key 'test_generation_data'로 저장됩니다.
 
     dag_run.conf 예시:
     {
-        "test_prompt": "정수 2이상 12이하의 소수의 개수를 구해주세요."
+        "test_prompt": "정수 2이상 12이하의 소수의 개수를 구해주세요. 이 때 소수의 정의를 한 문장으로 정의, 이를 기준으로 2부터 12까지 소인수분해를 모두 진행, 소수의 개수를 구하는 3단계로 설명해주세요."
     }
 
     Returns:
@@ -170,7 +112,7 @@ def test_llm_generation(**kwargs):
     dag_conf = kwargs.get('dag_run').conf if kwargs.get('dag_run') else {}
     test_prompt = dag_conf.get('test_prompt', '정수 2이상 12이하의 소수의 개수를 구해주세요. 이 때 소수의 정의를 한 문장으로 정의, 이를 기준으로 2부터 12까지 소인수분해를 모두 진행, 소수의 개수를 구하는 3단계로 설명해주세요.')
 
-    payload = kwargs['ti'].xcom_pull(key='example_generation_config', task_ids='prepare_generation_data')
+    payload = kwargs['ti'].xcom_pull(key='generated_text_config', task_ids='prepare_generation_data')
     model = payload.get('generation_params', {}).get('model', 'gpt-4o-mini')
     gpt = GPTClient(model=model)
     response = gpt.send_hard_temporary_message(test_prompt)
@@ -180,10 +122,8 @@ def test_llm_generation(**kwargs):
             logger.debug(f"[LLM Test] {key}: {value}")
     kwargs['ti'].xcom_push(key='test_generation_data', value=response)
 
-def create_train_data(**kwargs):
+def create_genereated_text(**kwargs):
     """
-    Airflow DAG에서 실행되는 태스크.
-
     XCom으로부터 generation config를 불러와,
     각 조합별로 LLM 프롬프트를 구성 → 응답 생성 → DB에 저장하는 전체 과정을 수행합니다.
 
@@ -193,10 +133,12 @@ def create_train_data(**kwargs):
     Returns:
         None
     """
-    payload = kwargs['ti'].xcom_pull(key='example_generation_config', task_ids='prepare_generation_data')
+    payload = kwargs['ti'].xcom_pull(key='generated_text_config', task_ids='prepare_generation_data')
     session = SessionLocal()
     crud_mappings = get_crud_mappings(session)
 
+    # 해당함수는 row 한 줄을 받아서 새롭게 데이터를 정의합니다.
+    # DAG마다 달라질 수 있습니다. 
     def make_params(row):
         
         # one shot prompt 생성 전략을 취하기 때문에 반드시 example_id를 받아와서 해당 행의 다양한 특징을 입력해야 합니다.
@@ -365,12 +307,12 @@ def create_train_data(**kwargs):
 
 # DAG 정의
 with DAG(
-    dag_id="correction_script_generate_text",
+    dag_id="correction_script_generated_text",
     start_date=datetime(2025, 5, 8),
     schedule_interval=None,
     catchup=False,
-    description="1) YAML 로드 → 2) LLM 테스트 → 3) 훈련 데이터 생성성",
-    tags=["yaml", "llm", "test"],
+    description="1) YAML 로드 → 2) LLM 테스트 → 3) 훈련 데이터 생성",
+    tags=["correction_script", "generated_text_table"],
     params={
         "yaml_path": "airflow/config/correction_script/generated_text/example.yaml",
         "test_prompt": "정수 2이상 12이하의 소수의 개수를 구해주세요."
@@ -390,8 +332,8 @@ with DAG(
     )
 
     t3 = PythonOperator(
-        task_id="create_train_data",
-        python_callable=create_train_data,
+        task_id="create_genereated_text",
+        python_callable=create_genereated_text,
         provide_context=True
     )
 
