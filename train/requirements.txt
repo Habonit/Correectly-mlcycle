@@ -6,3 +6,5 @@ loguru
 accelerate
 peft
 scipy
+python-dotenv
+openai

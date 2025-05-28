@@ -11,6 +11,12 @@ from transformers import (
 )
 from trl import SFTTrainer
 from loguru import logger
+from dotenv import load_dotenv
+import os
+
+# .env 파일 로드
+load_dotenv()
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -50,8 +56,8 @@ def main():
     global tokenizer
 
     logger.info(f"Loading model: {args.model_name}")
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=True)
-    model = AutoModelForCausalLM.from_pretrained(args.model_name, torch_dtype=torch.float16).to("cuda")
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=True, token=HF_TOKEN)
+    model = AutoModelForCausalLM.from_pretrained(args.model_name, torch_dtype=torch.float16, token=HF_TOKEN).to("cuda")
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -76,12 +82,12 @@ def main():
         output_dir=args.output_dir,
         per_device_train_batch_size=args.batch_size,
         num_train_epochs=args.num_epochs,
-        fp16=True,
+        bf16=True,
         logging_strategy="steps",
         logging_steps=logging_steps,
         save_strategy="steps",
         save_steps=save_steps,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=logging_steps,
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
@@ -93,7 +99,6 @@ def main():
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
@@ -104,7 +109,8 @@ def main():
     logger.info("Saving model...")
     trainer.model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
-    shutil.make_archive("best_sft", 'zip', args.output_dir)
+    
+    shutil.make_archive(f"{'/'.join(args.output_dir.split('/')[:-1])}/best_model", 'zip', args.output_dir)
 
 if __name__ == "__main__":
     main()
