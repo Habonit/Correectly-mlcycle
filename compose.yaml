@@ -13,6 +13,7 @@ services:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/02_grant.sh
       - ./:${PROJECT_PATH}
+      - ~/.ssh:/root/.ssh:ro
     networks:
       train-server:
         aliases:
@@ -40,6 +41,7 @@ services:
       - ./airflow/entrypoint.sh:${PROJECT_PATH}/airflow/entrypoint.sh
       - ./:${PROJECT_PATH}
       - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.ssh:/root/.ssh:ro
     ports:
       - "${AIRFLOW_PORT}:8080"
     networks:
@@ -68,6 +70,7 @@ services:
       - ./airflow/entrypoint.sh:${PROJECT_PATH}/airflow/entrypoint.sh
       - ./:${PROJECT_PATH}
       - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.ssh:/root/.ssh:ro
     networks:
       train-server:
         aliases:
@@ -92,6 +95,7 @@ services:
       PYTHONPATH: ${PROJECT_PATH}
     volumes:
       - ./:${PROJECT_PATH}
+      - ~/.ssh:/root/.ssh:ro
     ports:
       - "${MLFLOW_PORT}:5000"
     networks:

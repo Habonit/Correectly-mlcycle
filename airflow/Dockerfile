@@ -12,7 +12,7 @@ ENV PATH="${VENV_PATH}/bin:$PATH"
 WORKDIR ${PROJECT_PATH}
 
 RUN apt-get update && apt-get install -y \
-    gcc libc-dev vim curl \
+    gcc libc-dev vim curl openssh-client \
  && rm -rf /var/lib/apt/lists/*
 
 # ===== Builder =====
