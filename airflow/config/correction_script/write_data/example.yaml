@@ -1,6 +1,6 @@
 train_id: 
   type: necessary_column
-  value: 1~8
+  value: 1~80
 val_id:
   type: necessary_column
-  value: 9~10
+  value: 81~100

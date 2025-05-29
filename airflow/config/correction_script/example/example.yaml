@@ -10,10 +10,10 @@ creativity_id:
   value: [3]
 length_id: 
   type: necessary_column
-  value: [4,5]
+  value: [3,4,5]
 system_prompt_id: 
   type: necessary_column
-  value: [1,4]
+  value: [1,2,3,4,5]
 generation_prompt_id: 
   type: necessary_column
   value: [1]
