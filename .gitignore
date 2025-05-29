@@ -1,7 +1,5 @@
-# 타 프로젝트에서 따오느라 불필요하게 포함된 내용입니다.
-## feature/correctly 일 땐 아래를 주석 해제
-# airflow/dags/data_generation.py
-# src/eng_correct/
+# 외부에서 훈련해서 들어올 모델입니다.
+data/*/
 
 # 그 외 불필요한 파일
 .archive
