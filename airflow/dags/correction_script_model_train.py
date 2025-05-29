@@ -1,7 +1,10 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.providers.ssh.hooks.ssh import SSHHook
+from airflow.providers.ssh.operators.ssh import SSHOperator
 
 from src.utils.logger import setup_logger
+from src.utils.load_yaml import load_yaml
 
 from dotenv import load_dotenv
 from datetime import datetime
@@ -67,10 +70,6 @@ def transfer_data(**kwargs):
         f"{remote_user}@{remote_ip}:{remote_val_path}"
     ]
     subprocess.run(scp_val_cmd, check=True)
-    
-def model_train(**kwargs):
-    
-    logger.info("test 중")
 
 # DAG 정의
 with DAG(
@@ -86,9 +85,9 @@ with DAG(
         "val_data":"val_corpus.json",
         "local_ip":None,
         "local_port":None,
-        "remote_key":"root/.ssh/id_rsa",
-        "remote_ip":"192.165.134.27",
-        "remote_port":"12649",
+        "remote_key":"/root/.ssh/id_rsa",
+        "remote_ip":"80.188.223.202",
+        "remote_port":"13196",
         "remote_user":"root",
         "remote_workdir":"/workspace/Correectly-mlcycle",
         "model":"google/gemma-3-1b-it",
@@ -103,11 +102,38 @@ with DAG(
         python_callable=transfer_data,
         provide_context=True
     )
+    # TODO: AIRFLOW로부터 변수를 받아오는 것이 아닌 기본값을 사용하는 구조로 움직입니다.
+    # TODO: SSH 방식으로 하는 것은 매우 제한적인 환경에서 해야합니다. 
+    # TODO: 폐쇄망 구조에서 dockeroperator로 하는 것이 가장 이상적입니다.    
+    ssh_hook = SSHHook(
+        remote_host=dag.params["remote_ip"],
+        port=int(dag.params["remote_port"]),
+        username=dag.params["remote_user"],
+        key_file=dag.params["remote_key"],
+    )
 
-    t2 = PythonOperator(
+    t2 = SSHOperator(
         task_id="model_train",
-        python_callable=model_train,
-        provide_context=True
+        ssh_hook=ssh_hook,
+        command="""
+        bash -c '
+        export PYTHONPATH={{ params.remote_workdir }} && \
+        cd {{ params.remote_workdir }} && \
+        nohup /venv/main/bin/python train/train_sft.py \
+        --train_json data/{{ params.id }}/{{ params.train_data }} \
+        --test_json data/{{ params.id }}/{{ params.val_data }} \
+        --report_json data/{{ params.id }}/report.json \
+        --model_name "{{ params.model }}" \
+        --output_dir data/{{ params.id }}/model \
+        --batch_size {{ params.batch_size }} \
+        --num_epochs {{ params.num_epoch }} \
+        --save_total_limit {{ params.save_total_limit }} \
+        > data/{{ params.id }}/train.log 2>&1 &
+
+        echo "✅ Training started in background"
+        '
+        """,
+        do_xcom_push=False,
     )
 
     t1 >> t2
