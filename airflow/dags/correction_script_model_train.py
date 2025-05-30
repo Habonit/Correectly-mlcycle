@@ -6,6 +6,7 @@ from airflow.providers.ssh.operators.ssh import SSHOperator
 from src.utils.logger import setup_logger
 from src.utils.load_yaml import load_yaml
 
+from datetime import timedelta
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
@@ -80,14 +81,14 @@ with DAG(
     description="1) 데이터 전송 → 2) 모델 훈련",
     tags=["correction_script", "train_table"],
     params={
-        "id":"7883",
+        "id":"7907",
         "train_data":"train_corpus.json",
         "val_data":"val_corpus.json",
         "local_ip":None,
         "local_port":None,
         "remote_key":"/root/.ssh/id_rsa",
         "remote_ip":"80.188.223.202",
-        "remote_port":"13196",
+        "remote_port":"14917",
         "remote_user":"root",
         "remote_workdir":"/workspace/Correectly-mlcycle",
         "model":"google/gemma-3-1b-it",
@@ -116,7 +117,6 @@ with DAG(
         task_id="model_train",
         ssh_hook=ssh_hook,
         command="""
-        bash -c '
         export PYTHONPATH={{ params.remote_workdir }} && \
         cd {{ params.remote_workdir }} && \
         nohup /venv/main/bin/python train/train_sft.py \
@@ -129,11 +129,9 @@ with DAG(
         --num_epochs {{ params.num_epoch }} \
         --save_total_limit {{ params.save_total_limit }} \
         > data/{{ params.id }}/train.log 2>&1 &
-
-        echo "✅ Training started in background"
-        '
         """,
         do_xcom_push=False,
+        execution_timeout=timedelta(seconds=7200)
     )
 
     t1 >> t2

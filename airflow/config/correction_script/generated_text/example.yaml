@@ -10,10 +10,10 @@ creativity_id:
   value: 1~5
 length_id: 
   type: necessary_column
-  value: [4]
+  value: [4,5]
 example_id: 
   type: necessary_column
-  value: 1~7
+  value: 1~10
 
 generated_text: 
   type: target_column
